@@ -1,5 +1,6 @@
 require 'optparse'
 require 'json'
+require 'erb'
 
 abort 'You need specify GITHUB_TOKEN environment variable' unless ENV['GITHUB_TOKEN']
 
@@ -7,6 +8,7 @@ params = { :min_stars => 0 }
 opt = OptionParser.new
 opt.on('-s NUM', '--min-stargazers=NUM') {|v| params[:min_stars] = v.to_i}
 opt.on('-c', '--contribution-only') {|v| params[:contribution_only] = v}
+opt.on('-r TEMPLATE', '--render=TEMPLATE') {|v| params[:template] = v}
 opt.parse!(ARGV)
 
 all_repos = {}
@@ -84,4 +86,11 @@ result = {
   'repositories' => sorted_repos,
 }
 
-print(result.to_json)
+if params[:template]
+  puts(ERB.new(
+         IO.read(params[:template]),
+         trim_mode: 2,
+       ).result_with_hash(result))
+else
+  puts(result.to_json)
+end

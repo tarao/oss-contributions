@@ -1,0 +1,65 @@
+# Contributions
+
+<% def contribution(c) %>
+<%   cont = c['contributions'] %>
+<%   commits = cont['commits'] || 0 %>
+<%   pull_reqs = cont['pull_requests'] || 0 %>
+<%   reviews = cont['reviews'] || 0 %>
+<%   messages = [] %>
+<%   messages << commits.to_s + ' commits' if commits > 0  %>
+<%   messages << pull_reqs.to_s + ' pull requests' if pull_reqs > 0  %>
+<%   messages << reviews.to_s + ' reviews' if reviews > 0  %>
+<%   '@' + c['user'] + ': ' + messages.join(', ') %>
+<% end %>
+
+<% repositories.each do |repo| %>
+<table>
+  <tr>
+    <td><img src="<%= repo['image_url'] %>" width="80" /></td>
+    <td>
+      <h3><a href="https://github.com/<%= repo['name'] %>"><%= repo['name'] %></a></h3>
+      <p><%= repo['description'] %></p>
+      <a href="https://github.com/<%= repo['name'] %>/stargazers">★<%= repo['stargazers'].to_s.gsub(/(\d)(?=(\d{3})+(?!\d))/, '\1,') %></a>
+      <br>
+      <img width="600" height="0" />
+    </td>
+  </tr>
+
+<% owners = repo['contributors'].filter{|c| c['role'] == 'owner' } %>
+<% if owners.size > 0 %>
+  <tr>
+    <td colspan="2">
+      <em>Owners</em> <% owners.each do |c| %><a href="https://github.com/<%= c['user'] %>" title="<%= contribution(c) %>"><img src="https://avatars.githubusercontent.com/<%= c['user'] %>" width="20" /></a> <% end %>
+    </td>
+  </tr>
+<% end %>
+
+<% maintainers = repo['contributors'].filter{|c| c['role'] == 'maintainer' } %>
+<% if maintainers.size > 0 %>
+  <tr>
+    <td colspan="2">
+      <em>Maintainers</em> <% maintainers.each do |c| %><a href="https://github.com/<%= c['user'] %>" title="<%= contribution(c) %>"><img src="https://avatars.githubusercontent.com/<%= c['user'] %>" width="20" /></a> <% end %>
+    </td>
+  </tr>
+<% end %>
+
+<% collaborators = repo['contributors'].filter{|c| c['role'] == 'collaborator' } %>
+<% if collaborators.size > 0 %>
+  <tr>
+    <td colspan="2">
+      <em>Collaborators</em> <% collaborators.each do |c| %><a href="https://github.com/<%= c['user'] %>" title="<%= contribution(c) %>"><img src="https://avatars.githubusercontent.com/<%= c['user'] %>" width="20" /></a> <% end %>
+    </td>
+  </tr>
+<% end %>
+
+<% contributors = repo['contributors'].filter{|c| c['role'] == 'contributor' } %>
+<% if contributors.size > 0 %>
+  <tr>
+    <td colspan="2">
+      <em>Contributors</em> <% contributors.each do |c| %><a href="https://github.com/<%= c['user'] %>" title="<%= contribution(c) %>"><img src="https://avatars.githubusercontent.com/<%= c['user'] %>" width="20" /></a> <% end %>
+    </td>
+  </tr>
+</table>
+<% end %>
+
+<% end %>
