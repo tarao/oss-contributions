@@ -23,6 +23,7 @@ module GitHubAPI
         login
       }
       description
+      openGraphImageUrl
       isArchived
       isDisabled
       isLocked
@@ -103,6 +104,7 @@ module GitHubAPI
       'name' =>        repository.name_with_owner,
       'description' => repository.description,
       'url' =>         repository.url,
+      'image_url' =>   repository.open_graph_image_url,
       'is_private' =>  repository.is_private,
       'is_active' =>   ![
         repository.is_archived,
