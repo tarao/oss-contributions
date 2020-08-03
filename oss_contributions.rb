@@ -33,9 +33,10 @@ end
 
 def contribution_ordering(contributor)
   role_score = {
-    'owner'       => 2,
-    'committer'   => 2,
-    'contributor' => 1,
+    'owner'        => 3,
+    'maintainer'   => 3,
+    'collaborator' => 2,
+    'contributor'  => 1,
   }[contributor['role']] || 0
 
   pull_reqs = contributor['contributions']['pull_requests'] || 0

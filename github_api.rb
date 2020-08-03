@@ -84,11 +84,11 @@ module GitHubAPI
     elsif repository.collaborators
       case repository.collaborators.edges[0].permission
       when 'ADMIN' then
-        'committer'
+        'maintainer'
       when 'MAINTAIN' then
-        'committer'
+        'maintainer'
       when 'WRITE' then
-        'committer'
+        'collaborator'
       else
         'contributor'
       end
