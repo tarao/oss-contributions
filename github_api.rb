@@ -109,7 +109,6 @@ module GitHubAPI
         repository.is_disabled,
         repository.is_locked,
       ].any?,
-      # 'permission' =>  repository.permission,
       'role' =>        self.role_of_repository(user, repository),
       'stargazers' =>  repository.stargazers.total_count,
       'languages' =>   repository.languages.edges.map do |l|
