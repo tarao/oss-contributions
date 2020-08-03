@@ -29,7 +29,7 @@
 <% if owners.size > 0 %>
   <tr>
     <td colspan="2">
-      <em>Owners</em> <% owners.each do |c| %><a href="https://github.com/<%= c['user'] %>" title="<%= contribution(c) %>"><img src="https://avatars.githubusercontent.com/<%= c['user'] %>" width="20" /></a> <% end %>
+      <em>Owner</em> <% owners.each do |c| %><a href="https://github.com/<%= c['user'] %>" title="<%= contribution(c) %>"><img src="https://avatars.githubusercontent.com/<%= c['user'] %>" width="20" /></a> <% end %>
     </td>
   </tr>
 <% end %>
