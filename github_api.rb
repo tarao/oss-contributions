@@ -81,7 +81,7 @@ module GitHubAPI
   def self.role_of_repository(user, repository)
     if repository.owner.login == user
       'owner'
-    elsif repository.collaborators
+    elsif repository.collaborators && repository.collaborators.edges[0]
       case repository.collaborators.edges[0].permission
       when 'ADMIN' then
         'maintainer'
