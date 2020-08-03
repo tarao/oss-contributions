@@ -8,6 +8,7 @@ params = { :min_stars => 0 }
 opt = OptionParser.new
 opt.on('-s NUM', '--min-stargazers=NUM') {|v| params[:min_stars] = v.to_i}
 opt.on('-c', '--contribution-only') {|v| params[:contribution_only] = v}
+opt.on('-o', '--sort=ORDER') {|v| params[:sort] = v}
 opt.on('-r TEMPLATE', '--render=TEMPLATE') {|v| params[:template] = v}
 opt.parse!(ARGV)
 
@@ -69,11 +70,53 @@ all_repos.each do |k, repo|
   [k, repo]
 end
 
-sorted_repos = all_repos.values.filter do |repo|
+filtered_repos = all_repos.values.filter do |repo|
   repo['contributors'].size > 0 && repo['stargazers'] >= params[:min_stars]
-end.sort do |a, b|
-  b['stargazers'] <=> a['stargazers']
 end
+
+sorted_repos =
+  case params[:sort]
+  when 'max-contribution'
+    filtered_repos.sort do |a, b|
+      b_max = b['contributors'].map{|c| contribution_ordering(c).drop(1)}.max{|x, y| x <=> y}
+      a_max = a['contributors'].map{|c| contribution_ordering(c).drop(1)}.max{|x, y| x <=> y}
+      b_max <=> a_max
+    end
+  when 'total-contributions'
+    filtered_repos.sort do |a, b|
+      b_total = [0, 0, 0]
+      b['contributors'].each do |c|
+        b_total = b_total.zip(contribution_ordering(c).drop(1)).map{|x, y| x + y}
+      end
+
+      a_total = [0, 0, 0]
+      a['contributors'].each do |c|
+        a_total = a_total.zip(contribution_ordering(c).drop(1)).map{|x, y| x + y}
+      end
+
+      b_total <=> a_total
+    end
+  when 'total-contributors'
+    filtered_repos.sort do |a, b|
+      b_total = [0, 0, 0]
+      b['contributors'].each do |c|
+        b_total = b_total.zip(contribution_ordering(c).drop(1)).map{|x, y| x + y}
+      end
+      b_total.unshift(b['contributors'].size)
+
+      a_total = [0, 0, 0]
+      a['contributors'].each do |c|
+        a_total = a_total.zip(contribution_ordering(c).drop(1)).map{|x, y| x + y}
+      end
+      a_total.unshift(a['contributors'].size)
+
+      b_total <=> a_total
+    end
+  else
+    filtered_repos.sort do |a, b|
+      b['stargazers'] <=> a['stargazers']
+    end
+  end
 
 stats['total_users'] = (users['all'] || {}).size
 stats['total_owners'] = (users['owner'] || {}).size
