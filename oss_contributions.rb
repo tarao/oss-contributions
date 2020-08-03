@@ -10,6 +10,8 @@ opt.on('-c', '--contribution-only') {|v| params[:contribution_only] = v}
 opt.parse!(ARGV)
 
 all_repos = {}
+stats = {}
+users = {}
 
 ARGV.each do |user|
   require './github_api'
@@ -22,6 +24,17 @@ ARGV.each do |user|
     contributions = repo.delete('contributions')
 
     if !params[:contribution_only] || role != 'owner'
+      users['all'] ||= {}
+      users['all'][user] = true
+      users[role] ||= {}
+      users[role][user] = true
+      stats['total_commits'] ||= 0
+      stats['total_commits'] += contributions['commits'] || 0
+      stats['total_pull_requests'] ||= 0
+      stats['total_pull_requests'] += contributions['pull_requests'] || 0
+      stats['total_reviews'] ||= 0
+      stats['total_reviews'] += contributions['reviews'] || 0
+
       all_repos[repo['name']]['contributors'] << {
         'user'          => user,
         'role'          => role,
@@ -60,4 +73,15 @@ end.sort do |a, b|
   b['stargazers'] <=> a['stargazers']
 end
 
-print(sorted_repos.to_json)
+stats['total_users'] = (users['all'] || {}).size
+stats['total_owners'] = (users['owner'] || {}).size
+stats['total_maintainers'] = (users['maintainer'] || {}).size
+stats['total_collaborators'] = (users['collaborator'] || {}).size
+stats['total_contributors'] = (users['contributor'] || {}).size
+
+result = {
+  'stats'        => stats,
+  'repositories' => sorted_repos,
+}
+
+print(result.to_json)
