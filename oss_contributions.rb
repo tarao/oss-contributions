@@ -10,6 +10,7 @@ opt.on('-u USER', '--user=USER') {|v| params[:users] << v}
 opt.on('-o ORGANIZATION', '--organization=ORGANIZATION') {|v| params[:organization] = v}
 opt.on('-m NUM', '--min-stargazers=NUM') {|v| params[:min_stars] = v.to_i}
 opt.on('-c', '--contribution-only') {|v| params[:contribution_only] = v}
+opt.on('-i', '--include-personal') {|v| params[:include_personal] = v}
 opt.on('-s', '--sort=ORDER') {|v| params[:sort] = v}
 opt.on('-r TEMPLATE', '--render=TEMPLATE') {|v| params[:template] = v}
 opt.parse!(ARGV)
@@ -91,7 +92,12 @@ all_repos.each do |k, repo|
 end
 
 filtered_repos = all_repos.values.filter do |repo|
-  repo['contributors'].size > 0 && repo['stargazers'] >= params[:min_stars]
+  [
+    repo['stargazers'] >= params[:min_stars],
+    params[:include_personal] ?
+      repo['contributors'].size > 0 :
+      repo['contributors'].filter{|c| c['role'] != 'owner'}.size > 0,
+  ].all?
 end
 
 sorted_repos =
