@@ -14,6 +14,13 @@ Usage: oss_contributions [options] [<user>...]
     -r, --render=TEMPLATE
 ```
 
+Example
+-------
+
+![screenshot](./screenshot.png)
+
+See [#1](https://github.com/tarao/oss-contributions/issues/1) for a complete example.
+
 License
 -------
 
