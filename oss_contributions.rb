@@ -22,8 +22,15 @@ abort 'You need specify GITHUB_TOKEN environment variable' unless ENV['GITHUB_TO
 if params[:organization]
   page = 1
   loop do
-    url = "https://api.github.com/orgs/#{params[:organization]}/members?page=#{page}"
-    list = JSON.load(Net::HTTP.get(URI.parse(url)))
+    http = Net::HTTP.new("api.github.com", 443)
+    http.use_ssl = true
+    res = http.get(
+      "/orgs/#{params[:organization]}/members?page=#{page}",
+      { 'Authorization' => "token #{ENV['GITHUB_TOKEN']}" },
+    )
+    break unless res.code == '200'
+
+    list = JSON.load(res.body)
     list.each do |user|
       params[:users] << user['login']
     end
