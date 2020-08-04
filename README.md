@@ -4,10 +4,11 @@ oss-contributions
 List OSS contributions (GitHub repositories) of specified users.
 
 ```
-Usage: oss_contributions [options] <user>...
-    -s, --min-stargazers=NUM
+Usage: oss_contributions [options] [<user>...]
+    -u, --user=USER
+    -m, --min-stargazers=NUM
     -c, --contribution-only
-    -o, --sort=ORDER
+    -s, --sort=ORDER
     -r, --render=TEMPLATE
 ```
 

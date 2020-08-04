@@ -2,21 +2,24 @@ require 'optparse'
 require 'json'
 require 'erb'
 
-abort 'You need specify GITHUB_TOKEN environment variable' unless ENV['GITHUB_TOKEN']
-
-params = { :min_stars => 0 }
+params = { :min_stars => 0, :users => [] }
 opt = OptionParser.new
-opt.on('-s NUM', '--min-stargazers=NUM') {|v| params[:min_stars] = v.to_i}
+opt.on('-u USER', '--user=USER') {|v| params[:users] << v}
+opt.on('-m NUM', '--min-stargazers=NUM') {|v| params[:min_stars] = v.to_i}
 opt.on('-c', '--contribution-only') {|v| params[:contribution_only] = v}
-opt.on('-o', '--sort=ORDER') {|v| params[:sort] = v}
+opt.on('-s', '--sort=ORDER') {|v| params[:sort] = v}
 opt.on('-r TEMPLATE', '--render=TEMPLATE') {|v| params[:template] = v}
 opt.parse!(ARGV)
+
+params[:users] += ARGV
+
+abort 'You need specify GITHUB_TOKEN environment variable' unless ENV['GITHUB_TOKEN']
 
 all_repos = {}
 stats = {}
 users = {}
 
-ARGV.each do |user|
+params[:users].each do |user|
   require './github_api'
 
   GitHubAPI.repositories(user).each do |repo|
