@@ -1,10 +1,13 @@
 require 'optparse'
+require 'net/http'
+require 'uri'
 require 'json'
 require 'erb'
 
 params = { :min_stars => 0, :users => [] }
 opt = OptionParser.new
 opt.on('-u USER', '--user=USER') {|v| params[:users] << v}
+opt.on('-o ORGANIZATION', '--organization=ORGANIZATION') {|v| params[:organization] = v}
 opt.on('-m NUM', '--min-stargazers=NUM') {|v| params[:min_stars] = v.to_i}
 opt.on('-c', '--contribution-only') {|v| params[:contribution_only] = v}
 opt.on('-s', '--sort=ORDER') {|v| params[:sort] = v}
@@ -14,6 +17,20 @@ opt.parse!(ARGV)
 params[:users] += ARGV
 
 abort 'You need specify GITHUB_TOKEN environment variable' unless ENV['GITHUB_TOKEN']
+
+if params[:organization]
+  page = 1
+  loop do
+    url = "https://api.github.com/orgs/#{params[:organization]}/members?page=#{page}"
+    list = JSON.load(Net::HTTP.get(URI.parse(url)))
+    list.each do |user|
+      params[:users] << user['login']
+    end
+
+    break if list.empty?
+    page += 1
+  end
+end
 
 all_repos = {}
 stats = {}
