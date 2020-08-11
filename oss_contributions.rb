@@ -1,36 +1,150 @@
+# coding: utf-8
 require 'optparse'
 require 'net/http'
 require 'uri'
 require 'json'
 require 'erb'
 
-params = { :min_stars => 0, :users => [], :ordering_accumulation_strategy => 'sum' }
+class OptionParser
+  TERM_WIDTH = `tput cols`.to_i
+
+  def wrap_desc(*str)
+    # normalize word/sentence separators
+    str = str
+            .map{|s| s.gsub(/(?<=[^\s])\z/, ' ')}
+            .join('')
+            .gsub(/(?<![\n ])[ ]+/, ' ')
+            .split(/[.](?=(?:\s|$))/, -1)
+            .map{|s| s.gsub(/(\A +| +\z)/, '')}
+            .join('.  ')
+    width = TERM_WIDTH - (self.summary_width + self.summary_indent.length + 1)
+    result = ''
+
+    str.lines(chomp: true) do |line|
+      new_line = ''
+      i = 0
+      indent = line.match(/\A\s*/).to_s
+      line_width = width - indent.length
+      loop do
+        sub_str = line[i, line_width]
+        sub_str.gsub!(/[^\s]*\z/, '') if (line[i + line_width] || '').match?(/[^\s]/)
+        sub_str = line[i, line_width] if sub_str.empty?
+        new_line += indent + sub_str.gsub(/^\A[ ]*/, '').rstrip
+        i += sub_str.length
+        break unless i < line.length
+        new_line += "\n"
+      end
+      result += new_line + "\n"
+    end
+
+    result.gsub("\n",  "\n" + self.summary_indent + ' ' * self.summary_width + ' ')
+  end
+end
+
+SORT_MAX_CONTRIBUTION =
+  [ 'pull-requests', 'commits', 'reviews', 'contributors', 'role', 'stargazers', ]
+SORT_TOTAL_CONTRIBUTIONS =
+  [ 'pull-requests', 'commits', 'reviews', 'contributors', 'role', 'stargazers', ]
+SORT_TOTAL_CONTRIBUTORS =
+  [ 'contributors', 'role', 'pull-requests', 'commits', 'reviews', 'stargazers', ]
+SORT_STARGAZERS =
+  [ 'stargazers', 'contributors', 'role', 'pull-requests', 'commits', 'reviews', ]
+
+params = {
+  :min_stars => 0,
+  :users => [],
+  :sort => SORT_STARGAZERS,
+  :ordering_accumulation_strategy => 'sum',
+}
 opt = OptionParser.new
-opt.on('-u USER', '--user=USER') {|v| params[:users] << v}
-opt.on('-o ORGANIZATION', '--organization=ORGANIZATION') {|v| params[:organization] = v}
-opt.on('-m NUM', '--min-stargazers=NUM') {|v| params[:min_stars] = v.to_i}
-opt.on('-c', '--contribution-only') {|v| params[:contribution_only] = v}
-opt.on('-i', '--include-personal') {|v| params[:include_personal] = v}
-opt.on('-s', '--sort=ORDER') do |v|
+opt.banner = "Usage: GITHUB_TOKEN=xxxx bundle exec ruby #{$0} [OPTIONS] [<USER>...]"
+opt.separator('Options:')
+opt.on(
+  '-u USER',
+  '--user=USER',
+  opt.wrap_desc(
+    'User whose contribution is analyzed.',
+    'Use this option multiple times to specify more than one user.',
+  ),
+) {|v| params[:users] << v}
+opt.on(
+  '-o ORGANIZATION',
+  '--organization=ORGANIZATION',
+  opt.wrap_desc('Organization whose members are added to --user option.'),
+) {|v| params[:organization] = v}
+opt.on(
+  '-m NUM',
+  '--min-stargazers=NUM',
+  opt.wrap_desc('Exclude repositories which have stargazers less than this value.'),
+) {|v| params[:min_stars] = v.to_i}
+opt.on(
+  '-c',
+  '--contribution-only',
+  opt.wrap_desc('Exclude contributions by the repository owner.'),
+) {|v| params[:contribution_only] = v}
+opt.on(
+  '-i',
+  '--include-personal',
+  opt.wrap_desc(
+    'By default, repositories which only have contributions by their owners are excluded.',
+    'Specify this option to include them.',
+  ),
+) {|v| params[:include_personal] = v}
+opt.on(
+  '-s',
+  '--sort=ORDER',
+  opt.wrap_desc(
+    'The order of repositories and contributors.  The following values are available.',
+    "\n",
+    "\nmax-contribution",
+    "\n  Order by #{SORT_MAX_CONTRIBUTION.join(', ')}",
+    "    with taking maximum values of criteria among contributions in a single repository.",
+    "\n",
+    "\ntotal-contributions",
+    "\n  Order by #{SORT_TOTAL_CONTRIBUTIONS.join(', ')}",
+    "    with taking the sum of each criterion among contributions in a single repository.",
+    "\n",
+    "\ntotal-contributors",
+    "\n  Order by #{SORT_TOTAL_CONTRIBUTORS.join(', ')}",
+    "    with taking the sum of each criterion among contributions in a single repository.",
+    "\n",
+    "\nstargazers",
+    "\n  Order by #{SORT_STARGAZERS.join(', ')}",
+    "    with taking the sum of each criterion among contributions in a single repository.",
+    "    This is the default value in case no --sort=ORDER is specified.",
+    "\n",
+    "\n<sort-criterion>, ...",
+    "\n  Order by comma separated criteria.",
+    "\n  Available criteria:",
+    "\n    #{SORT_STARGAZERS.sort.join("\n    ")}",
+  ),
+) do |v|
   case v
   when 'max-contribution'
-    params[:sort] = [ 'pull-requests', 'commits', 'reviews', 'contributors', 'role', 'stargazers', ]
+    params[:sort] = SORT_MAX_CONTRIBUTION
     params[:ordering_accumulation_strategy] = 'max'
   when 'total-contributions'
-    params[:sort] = [ 'pull-requests', 'commits', 'reviews', 'contributors', 'role', 'stargazers', ]
+    params[:sort] = SORT_TOTAL_CONTRIBUTIONS
     params[:ordering_accumulation_strategy] = 'sum'
   when 'total-contributors'
-    params[:sort] = [ 'contributors', 'role', 'pull-requests', 'commits', 'reviews', 'stargazers', ]
+    params[:sort] = SORT_TOTAL_CONTRIBUTORS
     params[:ordering_accumulation_strategy] = 'sum'
   when 'stargazers'
-    params[:sort] = [ 'stargazers', 'contributors', 'role', 'pull-requests', 'commits', 'reviews', ]
+    params[:sort] = SORT_STARGAZERS
     params[:ordering_accumulation_strategy] = 'sum'
   else
-    params[:sort] = v.split(',')
+    params[:sort] = v.split(/,\s*/)
     params[:ordering_accumulation_strategy] = 'sum'
   end
 end
-opt.on('-r TEMPLATE', '--render=TEMPLATE') {|v| params[:template] = v}
+opt.on(
+  '-r TEMPLATE',
+  '--render=TEMPLATE',
+  opt.wrap_desc(
+    'Template file (.erb) to generate the output.',
+    'JSON value is printed without this option.',
+  ),
+) {|v| params[:template] = v}
 opt.parse!(ARGV)
 
 params[:users] += ARGV
@@ -100,7 +214,6 @@ class Ordering
     'collaborator' => 2,
     'contributor'  => 1,
   }
-  DEFAULT_SORT = ['stargazers', 'role', 'contributors', 'pull-requests', 'commits', 'reviews' ]
   ACCUMULATE = {
     'sum' => proc{|x,y| x + y},
     'max' => proc{|x,y| [x, y].max(&:<=>)},
@@ -145,8 +258,8 @@ class Ordering
     end
   end
 
-  def to_lexicographical(sort = DEFAULT_SORT)
-    (sort || DEFAULT_SORT).map{|s| @order[s] || 0}
+  def to_lexicographical(sort)
+    sort.map{|s| @order[s] || 0}
   end
 end
 
