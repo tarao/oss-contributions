@@ -4,14 +4,32 @@ require 'uri'
 require 'json'
 require 'erb'
 
-params = { :min_stars => 0, :users => [] }
+params = { :min_stars => 0, :users => [], :ordering_accumulation_strategy => 'sum' }
 opt = OptionParser.new
 opt.on('-u USER', '--user=USER') {|v| params[:users] << v}
 opt.on('-o ORGANIZATION', '--organization=ORGANIZATION') {|v| params[:organization] = v}
 opt.on('-m NUM', '--min-stargazers=NUM') {|v| params[:min_stars] = v.to_i}
 opt.on('-c', '--contribution-only') {|v| params[:contribution_only] = v}
 opt.on('-i', '--include-personal') {|v| params[:include_personal] = v}
-opt.on('-s', '--sort=ORDER') {|v| params[:sort] = v}
+opt.on('-s', '--sort=ORDER') do |v|
+  case v
+  when 'max-contribution'
+    params[:sort] = [ 'pull-requests', 'commits', 'reviews', 'contributors', 'role', 'stargazers', ]
+    params[:ordering_accumulation_strategy] = 'max'
+  when 'total-contributions'
+    params[:sort] = [ 'pull-requests', 'commits', 'reviews', 'contributors', 'role', 'stargazers', ]
+    params[:ordering_accumulation_strategy] = 'sum'
+  when 'total-contributors'
+    params[:sort] = [ 'contributors', 'role', 'pull-requests', 'commits', 'reviews', 'stargazers', ]
+    params[:ordering_accumulation_strategy] = 'sum'
+  when 'stargazers'
+    params[:sort] = [ 'stargazers', 'contributors', 'role', 'pull-requests', 'commits', 'reviews', ]
+    params[:ordering_accumulation_strategy] = 'sum'
+  else
+    params[:sort] = v.split(',')
+    params[:ordering_accumulation_strategy] = 'sum'
+  end
+end
 opt.on('-r TEMPLATE', '--render=TEMPLATE') {|v| params[:template] = v}
 opt.parse!(ARGV)
 
@@ -75,24 +93,70 @@ params[:users].each do |user|
   end
 end
 
-def contribution_ordering(contributor)
-  role_score = {
+class Ordering
+  ROLE_SCORE = {
     'owner'        => 3,
     'maintainer'   => 3,
     'collaborator' => 2,
     'contributor'  => 1,
-  }[contributor['role']] || 0
+  }
+  DEFAULT_SORT = ['stargazers', 'role', 'contributors', 'pull-requests', 'commits', 'reviews' ]
+  ACCUMULATE = {
+    'sum' => proc{|x,y| x + y},
+    'max' => proc{|x,y| [x, y].max(&:<=>)},
+  }
 
-  pull_reqs = contributor['contributions']['pull_requests'] || 0
-  commits = contributor['contributions']['commits'] || 0
-  reviews = contributor['contributions']['reviews'] || 0
+  def initialize
+    @order = {
+      'stargazers'    => 0,
+      'role'          => 0,
+      'contributors'  => 0,
+      'pull-requests' => 0,
+      'commits'       => 0,
+      'reviews'       => 0,
+    }
+  end
 
-  [ role_score, pull_reqs, commits, reviews ]
+  def self.of(contributor: contributor=nil, repository: repository=nil, strategy: strategy='sum')
+    ordering = self.new
+    ordering.add_contributor(contributor, strategy) if contributor
+    ordering.add_repository(repository, strategy) if repository
+    ordering
+  end
+
+  def add_contributor(contributor, strategy)
+    role = ROLE_SCORE[contributor['role']] || 0
+
+    pull_reqs = contributor['contributions']['pull_requests'] || 0
+    commits = contributor['contributions']['commits'] || 0
+    reviews = contributor['contributions']['reviews'] || 0
+
+    @order['role'] = ACCUMULATE[strategy][@order['role'], role]
+    @order['contributors'] += 1
+    @order['pull-requests'] = ACCUMULATE[strategy][@order['pull-requests'], pull_reqs]
+    @order['commits'] = ACCUMULATE[strategy][@order['commits'], commits]
+    @order['reviews'] = ACCUMULATE[strategy][@order['reviews'], reviews]
+  end
+
+  def add_repository(repository, strategy)
+    @order['stargazers'] = ACCUMULATE[strategy][@order['stargazers'], repository['stargazers'] || 0]
+    repository['contributors'].each do |c|
+      add_contributor(c, strategy)
+    end
+  end
+
+  def to_lexicographical(sort = DEFAULT_SORT)
+    (sort || DEFAULT_SORT).map{|s| @order[s] || 0}
+  end
 end
 
 all_repos.each do |k, repo|
+  sort = params[:sort]
+  strategy = params[:ordering_accumulation_strategy]
   repo['contributors'].sort! do |a, b|
-    contribution_ordering(b) <=> contribution_ordering(a)
+    ordering_b = Ordering.of(contributor: b, strategy: strategy).to_lexicographical(sort)
+    ordering_a = Ordering.of(contributor: a, strategy: strategy).to_lexicographical(sort)
+    ordering_b <=> ordering_a
   end
 
   [k, repo]
@@ -108,46 +172,14 @@ filtered_repos = all_repos.values.filter do |repo|
 end
 
 sorted_repos =
-  case params[:sort]
-  when 'max-contribution'
-    filtered_repos.sort do |a, b|
-      b_max = b['contributors'].map{|c| contribution_ordering(c).drop(1)}.max{|x, y| x <=> y}
-      a_max = a['contributors'].map{|c| contribution_ordering(c).drop(1)}.max{|x, y| x <=> y}
-      b_max <=> a_max
-    end
-  when 'total-contributions'
-    filtered_repos.sort do |a, b|
-      b_total = [0, 0, 0]
-      b['contributors'].each do |c|
-        b_total = b_total.zip(contribution_ordering(c).drop(1)).map{|x, y| x + y}
-      end
+  begin
+    sort = params[:sort]
+    strategy = params[:ordering_accumulation_strategy]
 
-      a_total = [0, 0, 0]
-      a['contributors'].each do |c|
-        a_total = a_total.zip(contribution_ordering(c).drop(1)).map{|x, y| x + y}
-      end
-
-      b_total <=> a_total
-    end
-  when 'total-contributors'
     filtered_repos.sort do |a, b|
-      b_total = [0, 0, 0]
-      b['contributors'].each do |c|
-        b_total = b_total.zip(contribution_ordering(c).drop(1)).map{|x, y| x + y}
-      end
-      b_total.unshift(b['contributors'].size)
-
-      a_total = [0, 0, 0]
-      a['contributors'].each do |c|
-        a_total = a_total.zip(contribution_ordering(c).drop(1)).map{|x, y| x + y}
-      end
-      a_total.unshift(a['contributors'].size)
-
-      b_total <=> a_total
-    end
-  else
-    filtered_repos.sort do |a, b|
-      b['stargazers'] <=> a['stargazers']
+      ordering_b = Ordering.of(repository: b, strategy: strategy).to_lexicographical(sort)
+      ordering_a = Ordering.of(repository: a, strategy: strategy).to_lexicographical(sort)
+      ordering_b <=> ordering_a
     end
   end
 
