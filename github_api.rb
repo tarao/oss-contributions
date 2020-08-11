@@ -100,6 +100,7 @@ module GitHubAPI
 
   def self.repository_to_hash(user, repository)
     size = repository.languages.total_size
+    size = 1 if size <= 0
     {
       'name' =>        repository.name_with_owner,
       'description' => repository.description,
