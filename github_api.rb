@@ -74,6 +74,9 @@ module GitHubAPI
           pullRequestReviewContributionsByRepository(maxRepositories: 100) {
             #{ContributionFragment}
           }
+          issueContributionsByRepository(maxRepositories: 100) {
+            #{ContributionFragment}
+          }
         }
       }
     }
@@ -196,9 +199,22 @@ module GitHubAPI
         repos[name] = self.merge_repos(repos[name] || {}, repo)
       end
 
+      contributions.issue_contributions_by_repository.each do |c|
+        repo = self.repository_to_hash(user, c.repository).merge(
+          {
+            'contributions' => {
+              'issues' => c.contributions.total_count,
+            }
+          }
+        )
+        name = repo['name']
+        repos[name] = self.merge_repos(repos[name] || {}, repo)
+      end
+
       size = contributions.commit_contributions_by_repository.size +
              contributions.pull_request_contributions_by_repository.size +
-             contributions.pull_request_review_contributions_by_repository.size
+             contributions.pull_request_review_contributions_by_repository.size +
+             contributions.issue_contributions_by_repository.size
       break if size <= 0
 
       to = from - 1

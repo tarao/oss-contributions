@@ -42,13 +42,13 @@ class OptionParser
 end
 
 SORT_MAX_CONTRIBUTION =
-  [ 'pull-requests', 'commits', 'reviews', 'contributors', 'role', 'stargazers', ]
+  [ 'pull-requests', 'commits', 'reviews', 'issues', 'contributors', 'role', 'stargazers', ]
 SORT_TOTAL_CONTRIBUTIONS =
-  [ 'pull-requests', 'commits', 'reviews', 'contributors', 'role', 'stargazers', ]
+  [ 'pull-requests', 'commits', 'reviews', 'issues', 'contributors', 'role', 'stargazers', ]
 SORT_TOTAL_CONTRIBUTORS =
-  [ 'contributors', 'role', 'pull-requests', 'commits', 'reviews', 'stargazers', ]
+  [ 'contributors', 'role', 'pull-requests', 'commits', 'reviews', 'issues', 'stargazers', ]
 SORT_STARGAZERS =
-  [ 'stargazers', 'contributors', 'role', 'pull-requests', 'commits', 'reviews', ]
+  [ 'stargazers', 'contributors', 'role', 'pull-requests', 'commits', 'reviews', 'issues', ]
 
 params = {
   :min_stars => 0,
@@ -197,6 +197,8 @@ params[:users].each do |user|
       stats['total_pull_requests'] += contributions['pull_requests'] || 0
       stats['total_reviews'] ||= 0
       stats['total_reviews'] += contributions['reviews'] || 0
+      stats['total_issues'] ||= 0
+      stats['total_issues'] += contributions['issues'] || 0
 
       all_repos[repo['name']]['contributors'] << {
         'user'          => user,
