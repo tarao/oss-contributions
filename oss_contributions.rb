@@ -344,6 +344,10 @@ sorted_repos =
 all_users = {}
 all_repos.each do |k, repo|
   repo['contributors'].each do |c|
+    if c['contributions']['details']
+      c['contributions']['details'].sort!{|a, b| b['occurred_at'] <=> a['occurred_at']}
+    end
+
     all_users[c['user']] ||= { 'user' => c['user'], 'contributions' => [] }
     all_users[c['user']]['contributions'] << {
       'repository'    => repo.filter{|k, v| k != 'contributors'},
