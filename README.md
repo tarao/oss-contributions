@@ -23,31 +23,33 @@ Options:
                                      values are available.
                                      
                                      max-contribution
-                                       Order by pull-requests, commits, reviews, contributors,
-                                       role, stargazers with taking maximum values of criteria among
-                                       contributions in a single repository.
+                                       Order by pull-requests, commits, reviews, issues,
+                                       contributors, role, stargazers with taking maximum values of
+                                       criteria among contributions in a single repository.
                                      
                                      total-contributions
-                                       Order by pull-requests, commits, reviews, contributors,
-                                       role, stargazers with taking the sum of each criterion among
-                                       contributions in a single repository.
+                                       Order by pull-requests, commits, reviews, issues,
+                                       contributors, role, stargazers with taking the sum of each
+                                       criterion among contributions in a single repository.
                                      
                                      total-contributors
                                        Order by contributors, role, pull-requests, commits,
-                                       reviews, stargazers with taking the sum of each criterion
-                                       among contributions in a single repository.
+                                       reviews, issues, stargazers with taking the sum of each
+                                       criterion among contributions in a single repository.
                                      
                                      stargazers
                                        Order by stargazers, contributors, role, pull-requests,
-                                       commits, reviews with taking the sum of each criterion among
-                                       contributions in a single repository.  This is the default
-                                       value in case no --sort=ORDER is specified.
+                                       commits, reviews, issues with taking the sum of each
+                                       criterion among contributions in a single repository.
+                                       This is the default value in case no --sort=ORDER is
+                                       specified.
                                      
                                      <sort-criterion>, ...
                                        Order by comma separated criteria.
                                        Available criteria:
                                          commits
                                          contributors
+                                         issues
                                          pull-requests
                                          reviews
                                          role
