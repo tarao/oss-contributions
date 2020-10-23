@@ -13,10 +13,41 @@ module GitHubAPI
 
   Client = GraphQL::Client.new(schema: Schema, execute: HTTP)
 
-  ContributionFragment = <<-'GRAPHQL'
+  CommitContributionFragment = <<-'GRAPHQL'
     contributions {
       totalCount
     }
+  GRAPHQL
+
+  PullRequestContributionFragment = <<-'GRAPHQL'
+    contributions(first: 100) {
+      totalCount
+      nodes {
+        occurredAt
+        pullRequest {
+          number
+          title
+          url
+        }
+      }
+    }
+  GRAPHQL
+
+  IssueContributionFragment = <<-'GRAPHQL'
+    contributions(first: 100) {
+      totalCount
+      nodes {
+        occurredAt
+        issue {
+          number
+          title
+          url
+        }
+      }
+    }
+  GRAPHQL
+
+  RepositoryFragment = <<-'GRAPHQL'
     repository {
       nameWithOwner
       owner {
@@ -66,16 +97,20 @@ module GitHubAPI
           to: $to
         ) {
           commitContributionsByRepository(maxRepositories: 100) {
-            #{ContributionFragment}
+            #{CommitContributionFragment}
+            #{RepositoryFragment}
           }
           pullRequestContributionsByRepository(maxRepositories: 100) {
-            #{ContributionFragment}
+            #{PullRequestContributionFragment}
+            #{RepositoryFragment}
           }
           pullRequestReviewContributionsByRepository(maxRepositories: 100) {
-            #{ContributionFragment}
+            #{PullRequestContributionFragment}
+            #{RepositoryFragment}
           }
           issueContributionsByRepository(maxRepositories: 100) {
-            #{ContributionFragment}
+            #{IssueContributionFragment}
+            #{RepositoryFragment}
           }
         }
       }
@@ -185,6 +220,16 @@ module GitHubAPI
             }
           }
         )
+        repo['contributions']['details'] ||= []
+        repo['contributions']['details'] += c.contributions.nodes.map do |c|
+          {
+            'type'        => 'pull-request',
+            'url'         => c.pull_request.url,
+            'title'       => c.pull_request.title,
+            'occurred_at' => c.occurred_at,
+            'number'      => c.pull_request.number,
+          }
+        end
         name = repo['name']
         repos[name] = self.merge_repos(repos[name] || {}, repo)
       end
@@ -197,6 +242,16 @@ module GitHubAPI
             }
           }
         )
+        repo['contributions']['details'] ||= []
+        repo['contributions']['details'] += c.contributions.nodes.map do |c|
+          {
+            'type'        => 'pull-request-review',
+            'url'         => c.pull_request.url,
+            'title'       => c.pull_request.title,
+            'occurred_at' => c.occurred_at,
+            'number'      => c.pull_request.number,
+          }
+        end
         name = repo['name']
         repos[name] = self.merge_repos(repos[name] || {}, repo)
       end
@@ -209,6 +264,16 @@ module GitHubAPI
             }
           }
         )
+        repo['contributions']['details'] ||= []
+        repo['contributions']['details'] += c.contributions.nodes.map do |c|
+          {
+            'type'        => 'issue',
+            'url'         => c.issue.url,
+            'title'       => c.issue.title,
+            'occurred_at' => c.occurred_at,
+            'number'      => c.issue.number,
+          }
+        end
         name = repo['name']
         repos[name] = self.merge_repos(repos[name] || {}, repo)
       end
