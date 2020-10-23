@@ -1,5 +1,6 @@
 # coding: utf-8
 require 'optparse'
+require 'date'
 require 'net/http'
 require 'uri'
 require 'json'
@@ -72,6 +73,16 @@ opt.on(
   '--organization=ORGANIZATION',
   opt.wrap_desc('Organization whose members are added to --user option.'),
 ) {|v| params[:organization] = v}
+opt.on(
+  '-f YYYY-MM-DD',
+  '--from=YYYY-MM-DD',
+  opt.wrap_desc('Date from when to start enumerating contributions.'),
+) {|v| params[:from] = Date.parse(v).to_time}
+opt.on(
+  '-t YYYY-MM-DD',
+  '--to=YYYY-MM-DD',
+  opt.wrap_desc('Date to when to stop enumerating contributions.'),
+) {|v| params[:to] = Date.parse(v).to_time}
 opt.on(
   '-m NUM',
   '--min-stargazers=NUM',
@@ -179,7 +190,7 @@ users = {}
 params[:users].each do |user|
   require './github_api'
 
-  GitHubAPI.repositories(user).each do |repo|
+  GitHubAPI.repositories(user, from: params[:from], to: params[:to]).each do |repo|
     all_repos[repo['name']] ||= repo
     all_repos[repo['name']]['contributors'] ||= []
 
