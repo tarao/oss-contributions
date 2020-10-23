@@ -229,6 +229,7 @@ class Ordering
       'pull-requests' => 0,
       'commits'       => 0,
       'reviews'       => 0,
+      'issues'        => 0,
     }
   end
 
@@ -245,12 +246,14 @@ class Ordering
     pull_reqs = contributor['contributions']['pull_requests'] || 0
     commits = contributor['contributions']['commits'] || 0
     reviews = contributor['contributions']['reviews'] || 0
+    issues = contributor['contributions']['issues'] || 0
 
     @order['role'] = ACCUMULATE[strategy][@order['role'], role]
     @order['contributors'] += 1
     @order['pull-requests'] = ACCUMULATE[strategy][@order['pull-requests'], pull_reqs]
     @order['commits'] = ACCUMULATE[strategy][@order['commits'], commits]
     @order['reviews'] = ACCUMULATE[strategy][@order['reviews'], reviews]
+    @order['issues'] = ACCUMULATE[strategy][@order['issues'], issues]
   end
 
   def add_repository(repository, strategy)
