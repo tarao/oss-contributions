@@ -1,0 +1,83 @@
+# Contributions
+
+<% def digits(n, unit=nil) %>
+<%   return '' if (n || 0) <= 0 %>
+<%   s = n.to_s.gsub(/(\d)(?=(\d{3})+(?!\d))/, '\1,') %>
+<%   s += ' ' + unit if unit %>
+<%   s += 's' if unit && n != 1 %>
+<%   s %>
+<% end %>
+
+<table>
+  <tr><th align="left">Commits</th><td align="right"><%= digits(stats['total_commits']) %></td></tr>
+  <tr><th align="left">PRs</th>    <td align="right"><%= digits(stats['total_pull_requests']) %></td></tr>
+  <tr><th align="left">Reviews</th><td align="right"><%= digits(stats['total_reviews']) %></td></tr>
+  <tr><th align="left">Issues</th> <td align="right"><%= digits(stats['total_issues']) %></td></tr>
+</table>
+
+<% users.each do |user| %>
+<table>
+  <tr><td colspan="4">
+    <h3><a href="https://github.com/<%= user['user'] %>">
+      <img src="https://avatars.githubusercontent.com/<%= user['user'] %>" width="80" />
+      <%= user['user'] %>
+    </a></h3>
+  </td></tr>
+  <tr>
+    <td width="150px"><%= digits(user['total']['commits'], 'commit') %></td>
+    <td width="150px"><%= digits(user['total']['pull_requests'], 'PR') %></td>
+    <td width="150px"><%= digits(user['total']['reviews'], 'review') %></td>
+    <td width="150px"><%= digits(user['total']['issues'], 'issue') %></td>
+  </tr>
+  <tr><td colspan="4"></td></tr>
+<%   user['contributions'].each do |c| %>
+<%     repo = c['repository'] %>
+  <tr><td colspan="4">
+    <h4>
+      <img src="<%= repo['image_url'] %>" width="40" height="40" align="left" />
+      <span>
+        <a href="https://github.com/<%= repo['name'] %>"> <%= repo['name'] %></a>
+        <br>
+        <a href="https://github.com/<%= repo['name'] %>/stargazers">★<%= digits(repo['stargazers']) %></a>
+      </span>
+    </h4>
+  </td></tr>
+  <tr>
+    <td><a href="https://github.com/<%= repo['name'] %>/commits?author=<%= user['user'] %>"><%= digits(c['commits'], 'commit') %></td>
+    <td><a href="https://github.com/<%= repo['name'] %>/pulls?q=is%3Apr+author%3A<%= user['user'] %>"><%= digits(c['pull_requests'], 'PR') %></a></td>
+    <td><a href="https://github.com/<%= repo['name'] %>/pulls?q=is%3Apr+reviewed-by%3A<%= user['user'] %>"><%= digits(c['reviews'], 'review') %></a></td>
+    <td><a href="https://github.com/<%= repo['name'] %>/issues?q=is%3Aissue+author%3A<%= user['user'] %>"><%= digits(c['issues'], 'issue') %></a></td>
+  </tr>
+  <tr><td colspan="4" width="600px">
+<%        pull_requests = c['details'].filter{|d| d['type'] == 'pull-request'} %>
+<%        if !pull_requests.empty? %>
+    <h5>Pull requests</h5>
+    <ul>
+<%          pull_requests.each do |item| %>
+      <li><a href="<%= item['url'] %>"><%= item['title'] %></a></li>
+<%          end %>
+    </ul>
+<%        end %>
+<%        reviews = c['details'].filter{|d| d['type'] == 'review'} %>
+<%        if !reviews.empty? %>
+    <h5>Reviews</h5>
+    <ul>
+<%          reviews.each do |item| %>
+      <li><a href="<%= item['url'] %>"><%= item['title'] %></a></li>
+<%          end %>
+    </ul>
+<%        end %>
+<%        issues = c['details'].filter{|d| d['type'] == 'issue'} %>
+<%        if !issues.empty? %>
+    <h5>Issues</h5>
+    <ul>
+<%          issues.each do |item| %>
+      <li><a href="<%= item['url'] %>"><%= item['title'] %></a></li>
+<%          end %>
+    </ul>
+<%        end %>
+  </td></tr>
+  <tr><td colspan="4"></td></tr>
+<%   end %>
+</table>
+<% end %>
