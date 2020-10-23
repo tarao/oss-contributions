@@ -233,23 +233,52 @@ class Ordering
     }
   end
 
-  def self.of(contributor: contributor=nil, repository: repository=nil, strategy: strategy='sum')
+  def self.of(
+        contributor: contributor=nil,
+        contributions: contributions=nil,
+        repository: repository=nil,
+        strategy: strategy='sum'
+      )
     ordering = self.new
     ordering.add_contributor(contributor, strategy) if contributor
+    ordering.add_contributions(contributions, strategy) if contributions
     ordering.add_repository(repository, strategy) if repository
     ordering
   end
 
   def add_contributor(contributor, strategy)
-    role = ROLE_SCORE[contributor['role']] || 0
+    role = if contributor['role']
+             ROLE_SCORE[contributor['role']] || 0
+           else
+             nil
+           end
+    @order['role'] = ACCUMULATE[strategy][@order['role'], role] if role
 
-    pull_reqs = contributor['contributions']['pull_requests'] || 0
-    commits = contributor['contributions']['commits'] || 0
-    reviews = contributor['contributions']['reviews'] || 0
-    issues = contributor['contributions']['issues'] || 0
+    contributions = contributor['contributions']
+    if contributions
+      if contributions.is_a?(Array)
+        contributions.each do |c|
+          add_contributions(c, strategy)
+        end
+      else
+        add_contributions(contributions, strategy)
+      end
+    end
+  end
 
-    @order['role'] = ACCUMULATE[strategy][@order['role'], role]
+  def add_contributions(contributions, strategy)
+    role = if contributions['role']
+             ROLE_SCORE[contributions['role']] || 0
+           else
+             nil
+           end
+    pull_reqs = contributions['pull_requests'] || 0
+    commits = contributions['commits'] || 0
+    reviews = contributions['reviews'] || 0
+    issues = contributions['issues'] || 0
+
     @order['contributors'] += 1
+    @order['role'] = ACCUMULATE[strategy][@order['role'], role] if role
     @order['pull-requests'] = ACCUMULATE[strategy][@order['pull-requests'], pull_reqs]
     @order['commits'] = ACCUMULATE[strategy][@order['commits'], commits]
     @order['reviews'] = ACCUMULATE[strategy][@order['reviews'], reviews]
@@ -301,6 +330,65 @@ sorted_repos =
     end
   end
 
+all_users = {}
+all_repos.each do |k, repo|
+  repo['contributors'].each do |c|
+    all_users[c['user']] ||= { 'user' => c['user'], 'contributions' => [] }
+    all_users[c['user']]['contributions'] << {
+      'repository'    => repo.filter{|k, v| k != 'contributors'},
+      'role'          => c['role'],
+    }.merge(c['contributions'])
+  end
+end
+
+filtered_users = all_users.values.map do |user|
+  contributions = user['contributions'].filter do |c|
+    repo = c['repository']
+    [
+      c['repository']['stargazers'] >= params[:min_stars],
+      params[:include_personal] || c['role'] != 'owner',
+    ].all?
+  end
+
+  total = {
+    'commits'       => 0,
+    'pull_requests' => 0,
+    'reviews'       => 0,
+    'issues'        => 0,
+  }
+  contributions.each do |c|
+    total['commits'] += c['commits'] || 0
+    total['pull_requests'] += c['pull_requests'] || 0
+    total['reviews'] += c['reviews'] || 0
+    total['issues'] += c['issues'] || 0
+  end
+
+  {
+    'user'          => user['user'],
+    'total'         => total,
+    'contributions' => contributions,
+  }
+end.filter{|user| !user['contributions'].empty?}
+
+sorted_users =
+  begin
+    sort = params[:sort]
+    strategy = params[:ordering_accumulation_strategy]
+
+    filtered_users.map do |user|
+      sorted_contributions = user['contributions'].sort do |a, b|
+        ordering_b = Ordering.of(contributions: b, strategy: strategy).to_lexicographical(sort)
+        ordering_a = Ordering.of(contributions: a, strategy: strategy).to_lexicographical(sort)
+        ordering_b <=> ordering_a
+      end
+      user.merge({ 'contributions' => sorted_contributions })
+    end.sort do |a, b|
+      ordering_b = Ordering.of(contributor: b, strategy: strategy).to_lexicographical(sort)
+      ordering_a = Ordering.of(contributor: a, strategy: strategy).to_lexicographical(sort)
+      ordering_b <=> ordering_a
+    end
+  end
+
 stats['total_users'] = (users['all'] || {}).size
 stats['total_owners'] = (users['owner'] || {}).size
 stats['total_maintainers'] = (users['maintainer'] || {}).size
@@ -310,6 +398,7 @@ stats['total_contributors'] = (users['contributor'] || {}).size
 result = {
   'stats'        => stats,
   'repositories' => sorted_repos,
+  'users'        => sorted_users,
 }
 
 if params[:template]
