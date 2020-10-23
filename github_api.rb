@@ -214,6 +214,7 @@ module GitHubAPI
             }
           }
         )
+        repo['contributions']['details'] ||= []
         name = repo['name']
         repos[name] = self.merge_repos(repos[name] || {}, repo)
       end
@@ -251,7 +252,7 @@ module GitHubAPI
         repo['contributions']['details'] ||= []
         repo['contributions']['details'] += c.contributions.nodes.map do |c|
           {
-            'type'        => 'pull-request-review',
+            'type'        => 'review',
             'url'         => c.pull_request.url,
             'title'       => c.pull_request.title,
             'occurred_at' => c.occurred_at,
