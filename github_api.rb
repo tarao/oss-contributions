@@ -146,17 +146,19 @@ module GitHubAPI
     end
   end
 
-  def self.repositories(user)
-    to = Time.now
+  def self.repositories(user, from: from=nil, to: to=nil)
+    to ||= Time.now
+    from, to = to, from if from && to < from
     repos = {}
 
     loop do
-      from = to - 60 * 60 * 24 * 365 + 1
+      t = to - 60 * 60 * 24 * 365 + 1
+      t = from if from && t < from
       result = GitHubAPI::Client.query(
         ContributingRepositoryQuery,
         variables: {
           login: user,
-          from: from.iso8601,
+          from: t.iso8601,
           to: to.iso8601,
         }
       )
@@ -217,7 +219,8 @@ module GitHubAPI
              contributions.issue_contributions_by_repository.size
       break if size <= 0
 
-      to = from - 1
+      to = t - 1
+      break if from && to < from
     end
 
     repos.values.select do |r|

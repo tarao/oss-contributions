@@ -11,6 +11,10 @@ Options:
                                      
     -o, --organization=ORGANIZATION  Organization whose members are added to --user option.
                                      
+    -f, --from=YYYY-MM-DD            Date from when to start enumerating contributions.
+                                     
+    -t, --to=YYYY-MM-DD              Date to when to stop enumerating contributions.
+                                     
     -m, --min-stargazers=NUM         Exclude repositories which have stargazers less than this
                                      value.
                                      
