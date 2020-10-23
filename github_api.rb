@@ -214,6 +214,7 @@ module GitHubAPI
             }
           }
         )
+        repo['contributions']['details'] ||= []
         name = repo['name']
         repos[name] = self.merge_repos(repos[name] || {}, repo)
       end
