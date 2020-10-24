@@ -51,30 +51,33 @@
   <tr><td colspan="4" width="600px">
 <%        pull_requests = c['details'].filter{|d| d['type'] == 'pull-request'} %>
 <%        if !pull_requests.empty? %>
-    <h5>Pull requests</h5>
-    <ul>
+    <details><summary>Pull requests</summary>
+      <ul>
 <%          pull_requests.each do |item| %>
-      <li><a href="<%= item['url'] %>"><%= item['title'] %></a></li>
+        <li><a href="<%= item['url'] %>"><%= item['title'] %></a></li>
 <%          end %>
-    </ul>
+      </ul>
+    </details>
 <%        end %>
 <%        reviews = c['details'].filter{|d| d['type'] == 'review'} %>
 <%        if !reviews.empty? %>
-    <h5>Reviews</h5>
-    <ul>
+    <details><summary>Reviews</summary>
+      <ul>
 <%          reviews.each do |item| %>
-      <li><a href="<%= item['url'] %>"><%= item['title'] %></a></li>
+        <li><a href="<%= item['url'] %>"><%= item['title'] %></a></li>
 <%          end %>
-    </ul>
+      </ul>
+    </details>
 <%        end %>
 <%        issues = c['details'].filter{|d| d['type'] == 'issue'} %>
 <%        if !issues.empty? %>
-    <h5>Issues</h5>
-    <ul>
+    <details><summary>Issues</summary>
+      <ul>
 <%          issues.each do |item| %>
-      <li><a href="<%= item['url'] %>"><%= item['title'] %></a></li>
+        <li><a href="<%= item['url'] %>"><%= item['title'] %></a></li>
 <%          end %>
-    </ul>
+      </ul>
+    </details>
 <%        end %>
   </td></tr>
   <tr><td colspan="4"></td></tr>
