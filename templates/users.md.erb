@@ -33,14 +33,12 @@
 <%   user['contributions'].each do |c| %>
 <%     repo = c['repository'] %>
   <tr><td colspan="4">
-    <h4>
-      <img src="<%= repo['image_url'] %>" width="40" height="40" align="left" />
-      <span>
-        <a href="https://github.com/<%= repo['name'] %>"> <%= repo['name'] %></a>
-        <br>
-        <a href="https://github.com/<%= repo['name'] %>/stargazers">★<%= digits(repo['stargazers']) %></a>
-      </span>
-    </h4>
+    <img src="<%= repo['image_url'] %>" width="32" height="32" align="left" />
+    <span>
+      <a href="https://github.com/<%= repo['name'] %>"> <%= repo['name'] %></a>
+      <br>
+      <a href="https://github.com/<%= repo['name'] %>/stargazers">★<%= digits(repo['stargazers']) %></a>
+    </span>
   </td></tr>
   <tr>
     <td><a href="https://github.com/<%= repo['name'] %>/commits?author=<%= user['user'] %>"><%= digits(c['commits'], 'commit') %></td>
