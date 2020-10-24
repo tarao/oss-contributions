@@ -9,6 +9,8 @@
 <% end %>
 
 <table>
+  <tr><th align="left">Contributors</th><td align="right"><%= digits(users.size) %></td></tr>
+  <tr><th align="left">Repositories</th><td align="right"><%= digits(repositories.size) %></td></tr>
   <tr><th align="left">Commits</th><td align="right"><%= digits(stats['total_commits']) %></td></tr>
   <tr><th align="left">PRs</th>    <td align="right"><%= digits(stats['total_pull_requests']) %></td></tr>
   <tr><th align="left">Reviews</th><td align="right"><%= digits(stats['total_reviews']) %></td></tr>
