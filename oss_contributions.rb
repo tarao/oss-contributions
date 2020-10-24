@@ -294,11 +294,14 @@ class Ordering
     @order['commits'] = ACCUMULATE[strategy][@order['commits'], commits]
     @order['reviews'] = ACCUMULATE[strategy][@order['reviews'], reviews]
     @order['issues'] = ACCUMULATE[strategy][@order['issues'], issues]
+
+    repository = contributions['repository']
+    add_repository(repository, strategy) if repository
   end
 
   def add_repository(repository, strategy)
     @order['stargazers'] = ACCUMULATE[strategy][@order['stargazers'], repository['stargazers'] || 0]
-    repository['contributors'].each do |c|
+    (repository['contributors'] || []).each do |c|
       add_contributor(c, strategy)
     end
   end
