@@ -7,7 +7,7 @@ require 'json'
 require 'erb'
 
 class OptionParser
-  TERM_WIDTH = `tput cols`.to_i
+  TERM_WIDTH = [ `tput cols`.to_i, 80 ].max
 
   def wrap_desc(*str)
     # normalize word/sentence separators
